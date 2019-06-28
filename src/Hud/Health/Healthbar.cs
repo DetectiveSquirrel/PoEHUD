@@ -79,14 +79,6 @@ namespace PoeHUD.Hud.Health
         public HealthBar(CachedPlayerEntity cachedEntity, HealthBarSettings settings)
         {
             CachedEntity = cachedEntity;
-
-            // If ignored entity found, skip
-            foreach (var _entity in IgnoreEntitiesList)
-            {
-                if (cachedEntity.Metadata.Contains(_entity))
-                    return;
-            }
-
             Type = CreatureType.Player;
             Settings = settings.Players;
             IsValid = true;
@@ -101,14 +93,9 @@ namespace PoeHUD.Hud.Health
         public CreatureType Type { get; }
         public LinkedList<int> DpsQueue { get; } = new LinkedList<int>();
 
-        public bool IsShow(bool showEnemy)
+        public bool IsLegionAndHidden(CachedMonsterEntity entity)
         {
-            return !isHostile ? Settings.Enable.Value : Settings.Enable && showEnemy && isHostile;
-        }
-
-        public bool IsLegionAndHidden(CachedEntity entity)
-        {
-            return entity.IsVisible && entity.Metadata.Contains("LegionLeague") && !entity.Entity.IsActive;
+            return entity.IsVisible && entity.IsLegion && !entity.Entity.IsActive;
         }
 
         public void DpsRefresh()

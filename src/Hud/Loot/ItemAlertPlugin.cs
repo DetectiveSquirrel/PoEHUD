@@ -21,13 +21,16 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using PoeHUD.EntitiesCache;
+using PoeHUD.EntitiesCache.CacheControllers;
+using PoeHUD.EntitiesCache.CachedEntities;
 
 namespace PoeHUD.Hud.Loot
 {
     public class ItemAlertPlugin : SizedPluginWithMapIcons<ItemAlertSettings>
     {
         private readonly HashSet<long> playedSoundsCache;
-        private readonly Dictionary<EntityWrapper, AlertDrawStyle> currentAlerts;
+        private readonly Dictionary<CachedWorldItemEntity, AlertDrawStyle> currentAlerts;
         private readonly HashSet<CraftingBase> craftingBases;
         private readonly HashSet<string> currencyNames;
         private Dictionary<long, LabelOnGround> currentLabels;
@@ -40,14 +43,17 @@ namespace PoeHUD.Hud.Loot
         {
             this.settingsHub = settingsHub;
             playedSoundsCache = new HashSet<long>();
-            currentAlerts = new Dictionary<EntityWrapper, AlertDrawStyle>();
+            currentAlerts = new Dictionary<CachedWorldItemEntity, AlertDrawStyle>();
             currentLabels = new Dictionary<long, LabelOnGround>();
             currencyNames = LoadCurrency();
             craftingBases = LoadCraftingBases();
             GameController.Area.AreaChange += OnAreaChange;
             PoeFilterInit(settings.FilePath);
             settings.FilePath.OnFileChanged += () => PoeFilterInit(settings.FilePath);
+            EntitiesAreaCache.Current.WorldItems.OnEntityAdded += WorldItemsOnOnEntityAdded;
         }
+
+
 
         private void PoeFilterInit(string path)
         {
@@ -110,17 +116,16 @@ namespace PoeHUD.Hud.Loot
 
             if (Settings.Enable)
             {
-                var pos = GameController.Player.GetComponent<Positioned>();
+                var pos = PlayerInfo.GetComponent<Positioned>();
 
                 var playerPos = pos.GridPos;
                 var position = StartDrawPointFunc();
                 const int BOTTOM_MARGIN = 2;
                 var shouldUpdate = false;
 
-                var validAlerts = currentAlerts.ToList().Where(
-                    x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid);
+                var validAlerts = currentAlerts.ToList().Where(x => x.Key != null && x.Key.Address != 0 && x.Key.IsValid);
 
-                foreach (KeyValuePair<EntityWrapper, AlertDrawStyle> kv in validAlerts)
+                foreach (var kv in validAlerts)
                 {
                     if (string.IsNullOrEmpty(kv.Value.Text))
                         continue;
@@ -164,7 +169,7 @@ namespace PoeHUD.Hud.Loot
 
                                 // Complete new KeyValuePair with new stuff
                                 AlertDrawStyle ModifiedDrawStyle = new AlertDrawStyle(kv.Value.Text, TextColor, kv.Value.BorderWidth, BorderColor, BackgroundColor, kv.Value.IconIndex);
-                                KeyValuePair<EntityWrapper, AlertDrawStyle> NewKV = new KeyValuePair<EntityWrapper, AlertDrawStyle>(kv.Key, ModifiedDrawStyle);
+                                var NewKV = new KeyValuePair<CachedWorldItemEntity, AlertDrawStyle>(kv.Key, ModifiedDrawStyle);
 
                                 position = DrawText(playerPos, position, BOTTOM_MARGIN, NewKV, kv.Value.Text);
                             }
@@ -194,7 +199,7 @@ namespace PoeHUD.Hud.Loot
         }
 
         private Vector2 DrawText(Vector2 playerPos, Vector2 position, int BOTTOM_MARGIN,
-            KeyValuePair<EntityWrapper, AlertDrawStyle> kv, string text)
+            KeyValuePair<CachedWorldItemEntity, AlertDrawStyle> kv, string text)
         {
             var padding = new Vector2(5, 2);
             Vector2 delta = kv.Key.GetComponent<Positioned>().GridPos - playerPos;
@@ -206,8 +211,13 @@ namespace PoeHUD.Hud.Loot
             return position;
         }
 
-        protected override void OnEntityAdded(EntityWrapper entity)
+        private void WorldItemsOnOnEntityAdded(EntityAddedArgs<CachedWorldItemEntity> addedArgs)
         {
+            if (!addedArgs.IsNewEntity)
+            {
+                return;
+            }
+            var entity = addedArgs.Entity;
             if (Settings.Enable && entity != null && !GameController.Area.CurrentArea.IsTown
                 && !currentAlerts.ContainsKey(entity) && entity.HasComponent<WorldItem>())
             {
@@ -239,7 +249,7 @@ namespace PoeHUD.Hud.Loot
             }
         }
 
-        private void PrepareForDrawingAndPlaySound(EntityWrapper entity, AlertDrawStyle drawStyle)
+        private void PrepareForDrawingAndPlaySound(CachedWorldItemEntity entity, AlertDrawStyle drawStyle)
         {
             currentAlerts.Add(entity, drawStyle);
             CurrentIcons[entity] = new MapIcon(entity, new HudTexture("currency.png", Settings.LootIconBorderColor ? drawStyle.BorderColor : drawStyle.TextColor), () => Settings.ShowItemOnMap, Settings.LootIcon);
@@ -251,7 +261,7 @@ namespace PoeHUD.Hud.Loot
             }
         }
 
-        protected override void OnEntityRemoved(EntityWrapper entity)
+        protected override void OnEntityRemoved(CachedWorldItemEntity entity)
         {
             base.OnEntityRemoved(entity);
             currentAlerts.Remove(entity);
@@ -408,23 +418,6 @@ namespace PoeHUD.Hud.Loot
             }
 
             return new ItemUsefulProperties(name, item, craftingBase);
-        }
-
-        private string GetItemName(KeyValuePair<EntityWrapper, AlertDrawStyle> kv)
-        {
-            var itemEntity = kv.Key.GetComponent<WorldItem>().ItemEntity;
-
-            var labelForEntity = GameController.EntityListWrapper.GetLabelForEntity(itemEntity);
-            if (labelForEntity == null)
-            {
-                if (!itemEntity.IsValid)
-                {
-                    return null;
-                }
-                labelForEntity = kv.Value.Text;
-            }
-
-            return labelForEntity;
         }
 
         private void OnAreaChange(AreaController area)

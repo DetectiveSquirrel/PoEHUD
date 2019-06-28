@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using PoeHUD.EntitiesCache.CacheControllers;
 
 namespace PoeHUD.Hud.Dps
 {
@@ -120,26 +121,13 @@ namespace PoeHUD.Hud.Dps
             Size = bounds.Size;
             Margin = new Vector2(0, 5);
         }
-
-        private List<EntityWrapper> CachedMonsters = new List<EntityWrapper>();
-        protected override void OnEntityAdded(EntityWrapper entityWrapper)
-        {
-            if (!entityWrapper.HasComponent<Monster>() || !entityWrapper.IsHostile || !entityWrapper.IsAlive) return;
-
-            if (!CachedMonsters.Contains(entityWrapper))
-                CachedMonsters.Add(entityWrapper);
-        }
-
-        protected override void OnEntityRemoved(EntityWrapper entityWrapper)
-        {
-            CachedMonsters.Remove(entityWrapper);
-        }
-
+        
         private void CalculateDps(out int aoeDamage, out int singleDamage)
         {
             aoeDamage = 0;
             singleDamage = 0;
-            foreach (var monster in CachedMonsters.ToArray())
+
+            foreach (var monster in MonstersController.Current.VisibleAliveEnemyMonsters)
             {
                 var life = monster.GetComponent<Life>();
                 if(!monster.IsAlive && Settings.HasCullingStrike.Value)
@@ -156,8 +144,8 @@ namespace PoeHUD.Hud.Dps
                         if (lastHP != hp)
                         {
                             int dmg = lastHP - hp;
-	                        if (dmg > life.MaxHP + life.MaxES)
-		                        dmg = life.MaxHP + life.MaxES;
+                            if (dmg > life.MaxHP + life.MaxES)
+                                dmg = life.MaxHP + life.MaxES;
 
                             aoeDamage += dmg;
                             singleDamage = Math.Max(singleDamage, dmg);
@@ -166,6 +154,7 @@ namespace PoeHUD.Hud.Dps
                     lastMonsters[monster.Id] = hp;
                 }
             }
+
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using PoeHUD.Controllers;
+using PoeHUD.EntitiesCache;
 using PoeHUD.EntitiesCache.CachedEntities;
 using PoeHUD.Framework;
 using PoeHUD.Framework.Helpers;
@@ -258,12 +259,15 @@ namespace PoeHUD.Hud.XpRate
         private double PartyXpPenalty()
         {
             var levels = new List<int>();
+    
+            foreach (var entity in EntitiesAreaCache.Current.Players.AllEntities)
+            {
+                if (!entity.IsVisible)
+                    continue;
 
-            //foreach (var entity in GameController.Entities)//TODO
-            //{
-            //    if (entity.HasComponent<Player>())
-            //        levels.Add(entity.GetComponent<Player>().Level);
-            //}
+                if (entity.HasComponent<Player>())
+                    levels.Add(entity.GetComponent<Player>().Level);
+            }
 
             var characterLevel = LocalPlayer.Level;
             var partyXpPenalty = Math.Pow(characterLevel + 10, 2.71) / levels.Sum(level => Math.Pow(level + 10, 2.71));

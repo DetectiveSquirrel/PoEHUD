@@ -197,46 +197,6 @@ namespace PoeHUD.Plugins
             }
         }
 
-        internal void _EntityAdded(EntityWrapper entityWrapper)
-        {
-            if (_disableDueToError) return;
-
-            if (!_initialized || !_allowRender)
-                return;
-
-            try
-            {
-                EntityAdded(entityWrapper);
-            }
-            catch (MissingMemberException me)
-            {
-                ProcessMissingMemberException(me, "EntityAdded");
-            }
-            catch (Exception e)
-            {
-                HandlePluginError("EntityAdded", e);
-            }
-        }
-
-        internal void _EntityRemoved(EntityWrapper entityWrapper)
-        {
-            if (_disableDueToError) return;
-            if (!_initialized || !_allowRender) return;
-
-            try
-            {
-                EntityRemoved(entityWrapper);
-            }
-            catch (MissingMemberException me)
-            {
-                ProcessMissingMemberException(me, "EntityRemoved");
-            }
-            catch (Exception e)
-            {
-                HandlePluginError("EntityRemoved", e);
-            }
-        }
-
         internal void _OnClose()
         {
             if (_disableDueToError) return;

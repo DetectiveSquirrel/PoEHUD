@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using PoeHUD.Models;
 using PoeHUD.Plugins;
 
@@ -41,14 +42,30 @@ namespace PoeHUD.Controllers
                 else
                 {
                     var areaTemplate = inGameData.CurrentArea;
+                    ClearOldAreasInCache();
                     CurrentArea = new AreaInstance(areaTemplate, areaHash, inGameData.CurrentAreaLevel);
-
-                    _areasCache.Add(areaHash, CurrentArea);
+                    if (CurrentArea.Name != "Azurite Mine")//ignore delve caching, we cannot re-enter same area
+                    {
+                        _areasCache.Add(areaHash, CurrentArea);
+                    }
                     BasePlugin.LogMessage("Area change. Created new...", 5);
+                   
                 }
 
                 AreaChange?.Invoke(this);
                 OnAreaChange?.Invoke(this);
+            }
+        }
+
+        private void ClearOldAreasInCache()
+        {
+            foreach (var cachedAreaData in _areasCache.Values.ToList())
+            {
+                if (cachedAreaData.TimeExistInCache.TotalMinutes > DELETE_FROM_CACHE_OLD_AREA_MIN)
+                {
+                    BasePlugin.LogMessage($"Removing old map from cache: {cachedAreaData.Name}", 5);
+                    _areasCache.Remove(cachedAreaData.Hash);
+                }
             }
         }
     }

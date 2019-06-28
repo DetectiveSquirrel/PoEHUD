@@ -61,6 +61,7 @@ namespace PoeHUD.Poe
         public bool CannotBeDamagedStat => HasStat((GameStat)GameController.Instance.Files.Stats.records["cannot_be_damaged"].ID, out var stat) && stat == 1;
         public bool Invincible => CannotDieAura || CannotBeDamagedStat;
         public bool IsMapBoss => GetComponent<ObjectMagicProperties>().Mods.Any(a => a == "MonsterMapBoss");
+        public bool IsFrozenInTime => HasComponent<Monster>() && GetComponent<Life>().HasBuff("frozen_in_time");
         public bool IsEmerging
         {
             get

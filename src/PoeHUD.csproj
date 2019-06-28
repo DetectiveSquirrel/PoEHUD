@@ -137,6 +137,14 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EntitiesCache\CacheControllers\DataContainer.cs" />
+    <Compile Include="EntitiesCache\CacheControllers\EntityAddedArgs.cs" />
+    <Compile Include="EntitiesCache\CacheControllers\EntityCollectionFilter.cs" />
+    <Compile Include="EntitiesCache\CacheControllers\EntityCollectionCacheController.cs" />
+    <Compile Include="EntitiesCache\CacheControllers\EntityRemovedArgs.cs" />
+    <Compile Include="EntitiesCache\CacheControllers\IEntityAppearanceFeedback.cs" />
+    <Compile Include="EntitiesCache\CacheControllers\MonstersController.cs" />
+    <Compile Include="EntitiesCache\CachedEntitiesDataContainerController.cs" />
     <Compile Include="EntitiesCache\CachedEntities\CachedAreaTransition.cs" />
     <Compile Include="EntitiesCache\CachedEntities\CachedChestEntity.cs" />
     <Compile Include="EntitiesCache\CachedEntities\CachedDangerEntity.cs" />
@@ -150,7 +158,6 @@
     <Compile Include="EntitiesCache\CachedEntities\CachedShrine.cs" />
     <Compile Include="EntitiesCache\CachedEntities\CachedStaticEntity.cs" />
     <Compile Include="EntitiesCache\CachedEntities\CachedWorldItemEntity.cs" />
-    <Compile Include="EntitiesCache\CachedEntities\MonstersController.cs" />
     <Compile Include="EntitiesCache\CachedEntities\PlayerInfo.cs" />
     <Compile Include="EntitiesCache\CachedEntities\PositionHelpers\IEntityHolder.cs" />
     <Compile Include="EntitiesCache\CachedEntities\PositionHelpers\StaticEntityWalkablePosition.cs" />
@@ -226,6 +233,7 @@
     <Compile Include="Hud\UI\Renderers\ImGuiRender.cs" />
     <Compile Include="Hud\UI\Vertexes\GuiVertex.cs" />
     <Compile Include="Models\Attributes\HideInReflectionAttibute.cs" />
+    <Compile Include="Models\Attributes\LegionLeagueAttribute.cs" />
     <Compile Include="Models\Attributes\StaticOffsetFieldDebugAttribute.cs" />
     <Compile Include="Models\BaseItemType.cs" />
     <Compile Include="Models\Cache.cs" />
@@ -468,6 +476,7 @@
     <Compile Include="Hud\Menu\MainMenuWindow.cs" />
     <Content Include="poehud.ico" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>

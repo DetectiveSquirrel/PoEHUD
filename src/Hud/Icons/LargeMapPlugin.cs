@@ -52,7 +52,7 @@ namespace PoeHUD.Hud.Icons
 
                 foreach (var icon in getIcons().Where(x => x.IsVisible()))
                 {
-                    var iconZ = icon.EntityWrapper.GetComponent<Render>().Z;
+                    var iconZ = icon.CachedEntity.GetComponent<Render>().Z;
 
                     var point = screenCenter
                                 + MapIcon.DeltaInWorldToMinimapDelta(icon.WorldPosition - playerPos, diag, scale,

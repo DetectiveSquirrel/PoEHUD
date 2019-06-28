@@ -5,11 +5,14 @@ using System.Linq;
 using System.Windows.Forms;
 using Newtonsoft.Json;
 using PoeHUD.Controllers;
+using PoeHUD.EntitiesCache;
+using PoeHUD.EntitiesCache.CacheControllers;
 using PoeHUD.Framework;
 using PoeHUD.Framework.Helpers;
 using PoeHUD.Hud.UI;
 using PoeHUD.Models;
 using PoeHUD.Poe.Components;
+using PoeHUD.Poe.RemoteMemoryObjects;
 using SharpDX;
 using SharpDX.Direct3D9;
 
@@ -18,30 +21,15 @@ namespace PoeHUD.Hud.Health
     public class HealthBarPlugin : Plugin<HealthBarSettings>
     {
         private readonly DebuffPanelConfig debuffPanelConfig;
-        private readonly Dictionary<CreatureType, List<HealthBar>> healthBars;
+        private readonly List<HealthBar> healthBars;
 
         public HealthBarPlugin(GameController gameController, Graphics graphics, HealthBarSettings settings)
             : base(gameController, graphics, settings)
         {
-            var types = Enum.GetValues(typeof(CreatureType)).Cast<CreatureType>().ToArray();
-            healthBars = new Dictionary<CreatureType, List<HealthBar>>(types.Length);
-
-            foreach (var type in types)
-            {
-                healthBars.Add(type, new List<HealthBar>());
-            }
+            healthBars = new List<HealthBar>();
 
             var json = File.ReadAllText("config/debuffPanel.json");
             debuffPanelConfig = JsonConvert.DeserializeObject<DebuffPanelConfig>(json);
-
-            new Coroutine(() =>
-                {
-                    foreach (var healthBar in healthBars)
-                    {
-                        healthBar.Value.RemoveAll(hp => !hp.CachedEntity.IsVisible);
-                    }
-                }, new WaitRender(10), nameof(HealthBarPlugin), "RemoveAll")
-                .AutoRestart(GameController.CoroutineRunner).Run();
         }
 
         public override void Render()
@@ -53,52 +41,78 @@ namespace PoeHUD.Hud.Health
                     !Settings.ShowInTown && GameController.Area.CurrentArea.IsHideout)
                     return;
 
-                var windowRectangle = GameController.Window.GetWindowRectangle();
-                var windowSize = new Size2F(windowRectangle.Width / 2560, windowRectangle.Height / 1600);
-
-                var camera = GameController.Game.IngameState.Camera;
-                Func<HealthBar, bool> showHealthBar = x => x.IsShow(Settings.ShowEnemies) && !x.IsLegionAndHidden(x.CachedEntity);
-
-                //Not Parallel better for performance
-                //Parallel.ForEach(healthBars, x => x.Value.RemoveAll(hp => !hp.Entity.IsValid));
-
-                foreach (var healthBar in healthBars.SelectMany(x => x.Value)
-                    .Where(hp => showHealthBar(hp) && hp.CachedEntity.IsVisible && hp.CachedEntity.Entity.IsAlive))
+                if (Settings.ShowEnemies)
                 {
-                    var worldCoords = healthBar.CachedEntity.Position.WorldPos;
-                    var mobScreenCoords = camera.WorldToScreen(worldCoords.Translate(0, 0, -170), healthBar.CachedEntity.Entity.Address);
-
-                    if (mobScreenCoords != new Vector2())
+                    foreach (var cachedMonsterEntity in MonstersController.Current.VisibleAliveMonsters)
                     {
-                        var scaledWidth = healthBar.Settings.Width * windowSize.Width;
-                        var scaledHeight = healthBar.Settings.Height * windowSize.Height;
-                        Color color = healthBar.Settings.Color;
-                        var hpPercent = healthBar.Life.HPPercentage;
-                        var esPercent = healthBar.Life.ESPercentage;
-                        var hpWidth = hpPercent * scaledWidth;
-                        var esWidth = esPercent * scaledWidth;
-                        var bg = new RectangleF(mobScreenCoords.X - scaledWidth / 2, mobScreenCoords.Y - scaledHeight / 2, scaledWidth, scaledHeight);
-                        var windowRect = GameController.Window.GetWindowRectangle();
-                        var fixNotFullscreen = new RectangleF(windowRect.X + bg.X, windowRect.Y + bg.Y, bg.Width, bg.Height);
+                        var healthBar = cachedMonsterEntity.GetDataContainer<HealthBar>();
 
-                        if (!windowRect.Intersects(fixNotFullscreen))
-                            continue;
+                        if (healthBar == null)
+                        {
+                            healthBar = new HealthBar(cachedMonsterEntity, Settings);
+                            cachedMonsterEntity.AddDataContainer(healthBar);
+                        }
 
-                        if (hpPercent <= 0.1f)
-                            color = healthBar.Settings.Under10Percent;
-
-                        bg.Y = DrawFlatLifeAmount(healthBar.Life, hpPercent, healthBar.Settings, bg);
-                        var yPosition = DrawFlatESAmount(healthBar, bg);
-                        yPosition = DrawDebuffPanel(new Vector2(bg.Left, yPosition), healthBar, healthBar.Life);
-                        ShowDps(healthBar, new Vector2(bg.Center.X, yPosition));
-                        DrawPercents(healthBar.Settings, hpPercent, bg);
-                        DrawBackground(color, healthBar.Settings.Outline, bg, hpWidth, esWidth);
+                        if (healthBar.IsValid && !healthBar.IsLegionAndHidden(cachedMonsterEntity) && healthBar.CachedEntity.Entity.IsAlive)
+                        {
+                            DrawHealthBar(healthBar);
+                        }
                     }
+                }
+
+                foreach (var playerEntity in EntitiesAreaCache.Current.Players.VisibleEntities)
+                {
+                    var healthBar = playerEntity.GetDataContainer<HealthBar>();
+
+                    if (healthBar == null)
+                    {
+                        healthBar = new HealthBar(playerEntity, Settings);
+                        playerEntity.AddDataContainer(healthBar);
+                    }
+
+                    DrawHealthBar(healthBar);
                 }
             }
             catch
             {
-                // do nothing
+                // do nothing... you know as in all projects like this... (joke)
+            }
+        }
+
+        private void DrawHealthBar(HealthBar healthBar)
+        {
+            var windowRectangle = GameController.Window.GetWindowRectangle();
+            var windowSize = new Size2F(windowRectangle.Width / 2560, windowRectangle.Height / 1600);
+            var camera = GameController.Game.IngameState.Camera;
+            var worldCoords = healthBar.CachedEntity.Position.WorldPos;
+            var mobScreenCoords = camera.WorldToScreen(worldCoords.Translate(0, 0, -170), healthBar.CachedEntity.Entity.Address);
+
+            if (mobScreenCoords != new Vector2())
+            {
+                var scaledWidth = healthBar.Settings.Width * windowSize.Width;
+                var scaledHeight = healthBar.Settings.Height * windowSize.Height;
+                var bg = new RectangleF(mobScreenCoords.X - scaledWidth / 2, mobScreenCoords.Y - scaledHeight / 2, scaledWidth, scaledHeight);
+                var windowRect = GameController.Window.GetWindowRectangle();
+                var fixNotFullscreen = new RectangleF(windowRect.X + bg.X, windowRect.Y + bg.Y, bg.Width, bg.Height);
+
+                if (!windowRect.Intersects(fixNotFullscreen))
+                    return;
+
+                var color = healthBar.Settings.Color;
+                var hpPercent = healthBar.Life.HPPercentage;
+                var esPercent = healthBar.Life.ESPercentage;
+                var hpWidth = hpPercent * scaledWidth;
+                var esWidth = esPercent * scaledWidth;
+
+                if (hpPercent <= 0.1f)
+                    color = healthBar.Settings.Under10Percent;
+
+                bg.Y = DrawFlatLifeAmount(healthBar.Life, hpPercent, healthBar.Settings, bg);
+                var yPosition = DrawFlatESAmount(healthBar, bg);
+                yPosition = DrawDebuffPanel(new Vector2(bg.Left, yPosition), healthBar, healthBar.Life);
+                ShowDps(healthBar, new Vector2(bg.Center.X, yPosition));
+                DrawPercents(healthBar.Settings, hpPercent, bg);
+                DrawBackground(color, healthBar.Settings.Outline, bg, hpWidth, esWidth);
             }
         }
 
@@ -225,14 +239,6 @@ namespace PoeHUD.Hud.Health
             }
 
             return 0;
-        }
-
-        protected override void OnEntityAdded(EntityWrapper entity)
-        {
-            var healthbarSettings = new HealthBar(entity, Settings);
-
-            if (healthbarSettings.IsValid)
-                healthBars[healthbarSettings.Type].Add(healthbarSettings);
         }
 
         private void DrawBackground(Color color, Color outline, RectangleF bg, float hpWidth, float esWidth)

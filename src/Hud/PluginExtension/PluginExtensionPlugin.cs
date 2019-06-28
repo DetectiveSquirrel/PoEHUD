@@ -37,8 +37,6 @@ namespace PoeHUD.Hud.PluginExtension
         
         public event Action eInitialise = delegate { };
         public event Action eRender = delegate { };
-        public event Action<EntityWrapper> eEntityAdded = delegate { };
-        public event Action<EntityWrapper> eEntityRemoved = delegate { };
         public event Action eClose = delegate { };
         public event Action<AreaController> eAreaChange = delegate { };
         public static List<PluginHolder> Plugins { get; set; } = new List<PluginHolder>();

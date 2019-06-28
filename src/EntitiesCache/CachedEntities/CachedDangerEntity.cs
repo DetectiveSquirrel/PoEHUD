@@ -5,6 +5,9 @@ namespace PoeHUD.EntitiesCache.CachedEntities
 {
     public class CachedDangerEntity : CachedEntity
     {
+        /// <summary>
+        /// This is something like explosion radius (of volatile, etc)
+        /// </summary>
         public float Radius { get; }
         private readonly bool _isMonster;
 
@@ -25,7 +28,7 @@ namespace PoeHUD.EntitiesCache.CachedEntities
 
         public override bool ShouldRemove()
         {
-            return !IsVisible ||
+            return !IsVisible ||//TODO: I'm not sure about this !IsVisible. Should works fine without this
                    Entity == null ||
                    Entity.Address == 0 ||
                    !Entity.IsValid || (

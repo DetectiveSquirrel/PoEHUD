@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using PoeHUD.Controllers;
+using PoeHUD.EntitiesCache.CacheControllers;
 using PoeHUD.EntitiesCache.CachedEntities;
-using PoeHUD.Framework.Helpers;
 using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 using SharpDX;
@@ -13,52 +11,47 @@ namespace PoeHUD.EntitiesCache
 {
     public class EntitiesAreaCache
     {
-        public static EntitiesAreaCache Current;
-
-        private static readonly HashSet<string> _specialChestMetadada = new HashSet<string>
-        {
-            "Metadata/Chests/BootyChest",
-            "Metadata/Chests/NotSoBootyChest",
-            "Metadata/Chests/VaultTreasurePile",
-            "Metadata/Chests/GhostPirateBootyChest",
-            "Metadata/Chests/StatueMakersTools",
-            "Metadata/Chests/StrongBoxes/VaultsOfAtziriUniqueChest",
-            "Metadata/Chests/CopperChestEpic3",
-            "Metadata/Chests/TutorialSupportGemChest"
-        };
-
-        public readonly Dictionary<uint, CachedEntity> AllEntities = new Dictionary<uint, CachedEntity>();
+        public static EntitiesAreaCache Current { get; internal set; }
+        internal event Action OnEntitiesClear = delegate { };
         private uint _scanNumber;
-        public ConcurrentBag<CachedAreaTransition> AreaTransitions = new ConcurrentBag<CachedAreaTransition>();
-        public ConcurrentBag<CachedChestEntity> Chests = new ConcurrentBag<CachedChestEntity>();
 
-        public ConcurrentBag<CachedDelveVein> DelveVeins = new ConcurrentBag<CachedDelveVein>();
-        public ConcurrentBag<CachedDoorEntity> Doors = new ConcurrentBag<CachedDoorEntity>();
-        public MonstersController Monsters = new MonstersController();
-        public ConcurrentBag<CachedNpcEntity> Npc = new ConcurrentBag<CachedNpcEntity>();
-        public ConcurrentBag<CachedPortalEntity> Portals = new ConcurrentBag<CachedPortalEntity>();
-        public ConcurrentBag<CachedShrine> Shrines = new ConcurrentBag<CachedShrine>();
-        public ConcurrentBag<CachedChestEntity> SpecialChests = new ConcurrentBag<CachedChestEntity>();
-        public ConcurrentBag<CachedChestEntity> Strongboxes = new ConcurrentBag<CachedChestEntity>();
-        public ConcurrentBag<CachedPlayerEntity> Players = new ConcurrentBag<CachedPlayerEntity>();
-        public ConcurrentDictionary<uint, CachedWorldItemEntity> WorldItems = new ConcurrentDictionary<uint, CachedWorldItemEntity>();
-        public List<CachedMonsterEntity> NearbyMonsters { get; set; } = new List<CachedMonsterEntity>();
+        public readonly Dictionary<uint, CachedEntity> AllEntities;
+        public readonly EntityCollectionCacheController<CachedAreaTransition> AreaTransitions;
+        public readonly EntityCollectionCacheController<CachedDangerEntity> DangerEntities;
+        public readonly EntityCollectionCacheController<CachedChestEntity> Chests;
+        public readonly EntityCollectionCacheController<CachedDelveVein> DelveVeins;
+        public readonly EntityCollectionCacheController<CachedDoorEntity> Doors;
+        public readonly EntityCollectionCacheController<CachedNpcEntity> Npc;
+        public readonly EntityCollectionCacheController<CachedPortalEntity> Portals;
+        public readonly EntityCollectionCacheController<CachedShrine> Shrines;
+        public readonly EntityCollectionCacheController<CachedChestEntity> SpecialChests;
+        public readonly EntityCollectionCacheController<CachedChestEntity> Strongboxes;
+        public readonly EntityCollectionCacheController<CachedPlayerEntity> Players;
+        public readonly EntityCollectionCacheController<CachedWorldItemEntity> WorldItems;
+        public readonly MonstersController Monsters;
+
+        public EntitiesAreaCache()
+        {
+            AllEntities = new Dictionary<uint, CachedEntity>();
+            AreaTransitions = new EntityCollectionCacheController<CachedAreaTransition>(this);
+            DangerEntities = new EntityCollectionCacheController<CachedDangerEntity>(this);
+            Chests = new EntityCollectionCacheController<CachedChestEntity>(this);
+            DelveVeins = new EntityCollectionCacheController<CachedDelveVein>(this);
+            Doors = new EntityCollectionCacheController<CachedDoorEntity>(this);
+            Monsters = new MonstersController(this);
+            Npc = new EntityCollectionCacheController<CachedNpcEntity>(this);
+            Portals = new EntityCollectionCacheController<CachedPortalEntity>(this);
+            Shrines = new EntityCollectionCacheController<CachedShrine>(this);
+            SpecialChests = new EntityCollectionCacheController<CachedChestEntity>(this);
+            Strongboxes = new EntityCollectionCacheController<CachedChestEntity>(this);
+            Players = new EntityCollectionCacheController<CachedPlayerEntity>(this);
+            WorldItems = new EntityCollectionCacheController<CachedWorldItemEntity>(this);
+        }
 
         public void ForceClearEntitiesCache()
         {
             AllEntities.Clear();
-            AreaTransitions = new ConcurrentBag<CachedAreaTransition>();
-            Doors = new ConcurrentBag<CachedDoorEntity>();
-            Chests = new ConcurrentBag<CachedChestEntity>();
-            Monsters.Clear();
-            Shrines = new ConcurrentBag<CachedShrine>();
-            SpecialChests = new ConcurrentBag<CachedChestEntity>();
-            Strongboxes = new ConcurrentBag<CachedChestEntity>();
-            Players = new ConcurrentBag<CachedPlayerEntity>();
-            WorldItems.Clear();
-            Portals = new ConcurrentBag<CachedPortalEntity>();
-            DelveVeins = new ConcurrentBag<CachedDelveVein>();
-            Npc = new ConcurrentBag<CachedNpcEntity>();
+            OnEntitiesClear();
         }
 
         public void UpdateCache()
@@ -109,7 +102,7 @@ namespace PoeHUD.EntitiesCache
                     //    {
                     //        var newWItems = WorldItems.ToList();
                     //        newWItems.RemoveAll(x => x == cachedEntity);
-                    //        WorldItems = new ConcurrentBag<CachedWorldItemEntity>(newWItems);
+                    //        WorldItems = new EntityCollectionCacheController<CachedWorldItemEntity>(newWItems);
                     //        _cachedEntities.Remove(keyValuePair.Key);
                     //    }
                     //}
@@ -120,9 +113,9 @@ namespace PoeHUD.EntitiesCache
 
                     if (cachedEntity.ShouldRemove())
                     {
-                        if (cachedEntity is CachedWorldItemEntity)
+                        if (cachedEntity is CachedWorldItemEntity worldItem)
                         {
-                            WorldItems.TryRemove(cachedEntity.Id, out _);
+                            WorldItems.EntityDestroyed(worldItem);
                             AllEntities.Remove(keyValuePair.Key);
                         }
                         else
@@ -144,7 +137,7 @@ namespace PoeHUD.EntitiesCache
                 {
                     var newCachedEntity = new CachedDelveVein(entity, _scanNumber);
                     AllEntities.Add(newCachedEntity.Id, newCachedEntity);
-                    DelveVeins.Add(newCachedEntity);
+                    DelveVeins.AddNewEntity(newCachedEntity);
                     continue;
                 }
 
@@ -159,7 +152,7 @@ namespace PoeHUD.EntitiesCache
                         {
                             var newCachedEntity = new CachedNpcEntity(entity, _scanNumber);
                             AllEntities.Add(newCachedEntity.Id, newCachedEntity);
-                            Npc.Add(newCachedEntity);
+                            Npc.AddNewEntity(newCachedEntity);
 
                             //LogMessage($"Found Npc: {entity.Metadata}");
                             found = true;
@@ -194,7 +187,7 @@ namespace PoeHUD.EntitiesCache
                             if (IsSpecialChest(entityMetadataPath) && ProcessSpecialChest(newCachedEntity, chest))
                             {
                                 //LogWarning($"Found special chest: {newCachedEntity.Metadata}");
-                                SpecialChests.Add(newCachedEntity);
+                                SpecialChests.AddNewEntity(newCachedEntity);
                             }
                             else if (chest.IsStrongbox && ProcessStrongbox(newCachedEntity, chest) ||
                                      entityMetadataPath.StartsWith("Metadata/Chests/VaultTreasurePile") ||
@@ -204,12 +197,12 @@ namespace PoeHUD.EntitiesCache
                             )
                             {
                                 //LogWarning($"Found strongbox: {newCachedEntity.Metadata}");
-                                Strongboxes.Add(newCachedEntity);
+                                Strongboxes.AddNewEntity(newCachedEntity);
                             }
                             else if (ProcessSimpleChest(newCachedEntity, chest))
                             {
                                 //LogWarning($"Found chest: {newCachedEntity.Metadata}");
-                                Chests.Add(newCachedEntity);
+                                Chests.AddNewEntity(newCachedEntity);
                             }
 
                             found = true;
@@ -226,9 +219,10 @@ namespace PoeHUD.EntitiesCache
 
                         if (componentsKey.Key == nameof(Player))
                         {
-                            var newCachedEntity = new CachedPlayerEntity(entity, _scanNumber);
+                            var player = game.GetObject<Player>(componentsKey.Value);
+                            var newCachedEntity = new CachedPlayerEntity(entity, _scanNumber, player);
                             AllEntities.Add(newCachedEntity.Id, newCachedEntity);
-                            Players.Add(newCachedEntity);
+                            Players.AddNewEntity(newCachedEntity);
                             found = true;
                             break;
                         }
@@ -237,7 +231,7 @@ namespace PoeHUD.EntitiesCache
                         {
                             var newCachedEntity = new CachedShrine(entity, _scanNumber);
                             AllEntities.Add(newCachedEntity.Id, newCachedEntity);
-                            Shrines.Add(newCachedEntity);
+                            Shrines.AddNewEntity(newCachedEntity);
                             found = true;
                             break;
                         }
@@ -247,7 +241,7 @@ namespace PoeHUD.EntitiesCache
                             var portal = game.GetObject<Portal>(componentsKey.Value);
                             var newCachedEntity = new CachedPortalEntity(entity, _scanNumber, portal);
                             AllEntities.Add(newCachedEntity.Id, newCachedEntity);
-                            Portals.Add(newCachedEntity);
+                            Portals.AddNewEntity(newCachedEntity);
                             found = true;
                             break;
                         }
@@ -257,7 +251,7 @@ namespace PoeHUD.EntitiesCache
                             var areaTransition = game.GetObject<AreaTransition>(componentsKey.Value);
                             var newCachedEntity = new CachedAreaTransition(entity, _scanNumber, areaTransition);
                             AllEntities.Add(newCachedEntity.Id, newCachedEntity);
-                            AreaTransitions.Add(newCachedEntity);
+                            AreaTransitions.AddNewEntity(newCachedEntity);
                             found = true;
                             break;
                         }
@@ -275,7 +269,7 @@ namespace PoeHUD.EntitiesCache
                             AllEntities.Add(newCachedEntity.Id, newCachedEntity);
 
                             if (FilterWorldItem(newCachedEntity))
-                                WorldItems.TryAdd(newCachedEntity.Id, newCachedEntity);
+                                WorldItems.AddNewEntity(newCachedEntity);
 
                             //LogMessage($"Found TriggerableBlockage: {entity.Metadata}");
                             found = true;
@@ -301,17 +295,15 @@ namespace PoeHUD.EntitiesCache
                     //LogMessage($"Added OTHER entity: {entity.Metadata}");
                     var otherCachedEntity = new CachedStaticEntity(entity, _scanNumber);
 
-                    if (!AllEntities.ContainsKey(otherCachedEntity.Id)) //Sometimes shit happen...
-                        AllEntities.Add(otherCachedEntity.Id, otherCachedEntity);
+                    //if (!AllEntities.ContainsKey(otherCachedEntity.Id)) //Sometimes shit happen...
+                    //    AllEntities.Add(otherCachedEntity.Id, otherCachedEntity);
+                    AllEntities[otherCachedEntity.Id] = otherCachedEntity;
                 }
             }
 
-            foreach (var keyValuePair in AllEntities.Values.ToList())
-            {
-                keyValuePair?.CheckDisappear(_scanNumber);
-            }
-
-            UpdateMonsters();
+            AreaTransitions.CheckVisibility(_scanNumber);
+            Monsters.CheckVisibility(_scanNumber);
+            DangerEntities.CheckVisibility(_scanNumber);
         }
 
         private void AddMonster(string entityMetadataPath, Entity entity, uint id)
@@ -324,7 +316,7 @@ namespace PoeHUD.EntitiesCache
                 var volatileMonster = new CachedDangerEntity(entity, _scanNumber, true, true, 50);
 
                 //LogWarning($"Found VOLATILE!!!: {volatileMonster.Metadata}");
-                Monsters.AddDangerEntity(id, volatileMonster);
+                DangerEntities.AddNewEntity(volatileMonster);
                 AllEntities.Add(volatileMonster.Id, volatileMonster);
             }
             else
@@ -335,12 +327,10 @@ namespace PoeHUD.EntitiesCache
                 if (FilterMonster(newCachedEntity))
                 {
                     //LogWarning($"+++Found monster: {newCachedEntity.Name}, ent null: {newCachedEntity.Entity == null}, Id: {newCachedEntity.Id}");
-                    Monsters.AddMonster(newCachedEntity);
+                    Monsters.AddNewEntity(newCachedEntity);
                 }
             }
         }
-
-      
 
         private void ProcessTriggerableBlockage(Entity entity)
         {
@@ -358,7 +348,7 @@ namespace PoeHUD.EntitiesCache
             //Metadata/Terrain/Labyrinth/Traps/LabyrinthCascadeSpikeTrap
             var newCachedEntity = new CachedDoorEntity(entity, _scanNumber);
             AllEntities.Add(newCachedEntity.Id, newCachedEntity);
-            Doors.Add(newCachedEntity);
+            Doors.AddNewEntity(newCachedEntity);
 
             if (lockedDoor)
                 newCachedEntity.IsLockingDoor = true;
@@ -386,6 +376,18 @@ namespace PoeHUD.EntitiesCache
         #endregion
 
         #region Chests
+        
+        private static readonly HashSet<string> _specialChestMetadada = new HashSet<string>
+        {
+            "Metadata/Chests/BootyChest",
+            "Metadata/Chests/NotSoBootyChest",
+            "Metadata/Chests/VaultTreasurePile",
+            "Metadata/Chests/GhostPirateBootyChest",
+            "Metadata/Chests/StatueMakersTools",
+            "Metadata/Chests/StrongBoxes/VaultsOfAtziriUniqueChest",
+            "Metadata/Chests/CopperChestEpic3",
+            "Metadata/Chests/TutorialSupportGemChest"
+        };
 
         private static bool IsSpecialChest(string metadata)
         {
@@ -413,7 +415,7 @@ namespace PoeHUD.EntitiesCache
             if (c.IsLocked && !chestEntity.Metadata.Contains("/PerandusChests/"))
                 return false;
 
-            SpecialChests.Add(chestEntity);
+            SpecialChests.AddNewEntity(chestEntity);
             return true;
         }
 
@@ -422,7 +424,7 @@ namespace PoeHUD.EntitiesCache
             if (box.IsOpened || box.IsLocked || !chestEntity.Entity.GetComponent<Targetable>().isTargetable)
                 return false;
 
-            Strongboxes.Add(chestEntity);
+            Strongboxes.AddNewEntity(chestEntity);
             return true;
         }
 
@@ -431,7 +433,7 @@ namespace PoeHUD.EntitiesCache
             if (c.IsOpened || c.IsLocked || c.OpenOnDamage || !chestEntity.Entity.GetComponent<Targetable>().isTargetable)
                 return false;
 
-            Chests.Add(chestEntity);
+            Chests.AddNewEntity(chestEntity);
             return true;
         }
 
@@ -439,8 +441,7 @@ namespace PoeHUD.EntitiesCache
 
         #region Monsters
 
-
-        public static bool FilterMonster(CachedMonsterEntity cachedMonster)
+        private static bool FilterMonster(CachedMonsterEntity cachedMonster)
         {
             var entity = cachedMonster.Entity;
 
@@ -468,17 +469,17 @@ namespace PoeHUD.EntitiesCache
             //    return false;
             //}
 
-            if (!entity.IsHostile)
-            {
-                cachedMonster.InitialFilterOutReason = "!IsHostile";
-                return false;
-            }
+            //if (!entity.IsHostile)
+            //{
+            //    cachedMonster.InitialFilterOutReason = "!IsHostile";
+            //    return false;
+            //}
 
-            if (!entity.HasComponent<Monster>()) //Sometimes item Id is equal to monster.
-            {
-                cachedMonster.InitialFilterOutReason = "!entity.HasComponent<Monster>()";
-                return false;
-            }
+            //if (!entity.HasComponent<Monster>()) //Sometimes item Id is equal to monster.
+            //{
+            //    cachedMonster.InitialFilterOutReason = "!entity.HasComponent<Monster>()";
+            //    return false;
+            //}
 
             //Note: CannotBeDamaged causing emerging enemies to be ignored and they are not pass to Monsters list. 
             //TODO: DO NOT use IsTargetable as filter here too (but I'm not sure. Test this)
@@ -496,11 +497,12 @@ namespace PoeHUD.EntitiesCache
             //TODO: Fixme
             //if (!IsInIncursion && entity.ExplicitAffixes.Any(a => a.InternalName.StartsWith("MonsterIncursion")))
             //    return;
-            if (HasImmunityAura(entity))
-            {
-                cachedMonster.InitialFilterOutReason = "HasImmunityAura";
-                return false;
-            }
+
+            //if (HasImmunityAura(entity))
+            //{
+            //    cachedMonster.InitialFilterOutReason = "HasImmunityAura";
+            //    return false;
+            //}
 
             if (SkipThisMob(entity))
             {
