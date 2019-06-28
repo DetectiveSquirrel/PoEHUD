@@ -137,8 +137,30 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EntitiesCache\CachedEntities\CachedAreaTransition.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedChestEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedDangerEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedDelveVein.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedDoorEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedMonsterEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedNpcEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedPlayerEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedPortalEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedShrine.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedStaticEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\CachedWorldItemEntity.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\MonstersController.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\PlayerInfo.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\PositionHelpers\IEntityHolder.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\PositionHelpers\StaticEntityWalkablePosition.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\PositionHelpers\TransitionableEntityWalkablePosition.cs" />
+    <Compile Include="EntitiesCache\CachedEntities\PositionHelpers\WalkablePosition.cs" />
+    <Compile Include="EntitiesCache\EntitiesAreaCache.cs" />
     <Compile Include="Controllers\FsController.cs" />
     <Compile Include="Controllers\GameStateController.cs" />
+    <Compile Include="EntitiesCache\Extensions\LocalizationConstants.cs" />
+    <Compile Include="EntitiesCache\Extensions\MonsterEntityExtensions.cs" />
     <Compile Include="Framework\Aero.cs" />
     <Compile Include="Framework\ChooseColor.cs" />
     <Compile Include="Framework\Coroutine.cs" />

@@ -30,8 +30,8 @@ namespace PoeHUD.Hud.PluginExtension
             Graphics = graphics;
             SearchPlugins();
             InitPlugins();
-            gameController.EntityListWrapper.EntityAdded += OnEntityAdded;
-            gameController.EntityListWrapper.EntityRemoved += OnEntityRemoved;
+            //gameController.EntityListWrapper.EntityAdded += OnEntityAdded;//TODO
+            //gameController.EntityListWrapper.EntityRemoved += OnEntityRemoved;
             gameController.Area.AreaChange += area => eAreaChange(area);
         }
         

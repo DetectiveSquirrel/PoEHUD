@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using PoeHUD.Controllers;
+using PoeHUD.EntitiesCache;
 using PoeHUD.Plugins;
 using ImGuiVector2 = System.Numerics.Vector2;
 using ImGuiVector4 = System.Numerics.Vector4;
@@ -164,10 +165,10 @@ namespace PoeHUD.Hud.PluginExtension
             if (actualyReload)
                 BPlugin._AreaChange(GameController.Instance.Area);
 
-            foreach (var entity in GameController.Instance.EntityListWrapper.Entities.ToList())
-            {
-                BPlugin._EntityAdded(entity);
-            }
+            //foreach (var entity in GameController.Instance.EntityListWrapper.Entities.ToList())//TODO
+            //{
+            //    BPlugin._EntityAdded(entity);
+            //}
         }
 
         internal override void OnPluginSelectedInMenu()

@@ -4,6 +4,7 @@ using PoeHUD.Models.Interfaces;
 using PoeHUD.Poe;
 using PoeHUD.Poe.Components;
 using System.Collections.Generic;
+using PoeHUD.EntitiesCache.CachedEntities;
 using Vector3 = SharpDX.Vector3;
 
 namespace PoeHUD.Models
@@ -67,8 +68,8 @@ namespace PoeHUD.Models
         private int GetDistanceFromPlayer()
         {
             var p        = GetComponent<Render>();
-            var player   = GameController.Instance.Player;
-            var distance = Math.Sqrt(Math.Pow(player.Pos.X - p.X, 2) + Math.Pow(player.Pos.Y - p.Y, 2));
+            var playerPos   = PlayerInfo.Player.Pos;
+            var distance = Math.Sqrt(Math.Pow(playerPos.X - p.X, 2) + Math.Pow(playerPos.Y - p.Y, 2));
             return (int)distance;
         }
 

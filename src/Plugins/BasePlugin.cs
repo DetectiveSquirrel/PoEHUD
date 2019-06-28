@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using PoeHUD.Controllers;
 using PoeHUD.DebugPlug;
+using PoeHUD.EntitiesCache.CachedEntities;
 using PoeHUD.Framework;
 using PoeHUD.Hud;
 using PoeHUD.Hud.Menu.SettingsDrawers;
@@ -43,7 +44,7 @@ namespace PoeHUD.Plugins
         public IngameState IngameState => GameController.Game.IngameState;
         public ServerData ServerData => IngameState.ServerData;
         public IngameUIElements IngameUi => IngameState.IngameUi;
-        public EntityWrapper Player => GameController.Player;
+        public EntityWrapper Player => PlayerInfo.Player;
 
         public Graphics Graphics => API.Graphics;
         public Memory Memory => GameController.Memory;

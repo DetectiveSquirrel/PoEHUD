@@ -1,5 +1,6 @@
 using PoeHUD.Poe.RemoteMemoryObjects;
 using System;
+using PoeHUD.EntitiesCache;
 
 namespace PoeHUD.Models
 {
@@ -14,10 +15,11 @@ namespace PoeHUD.Models
         public bool IsMap { get; }
         public uint Hash { get; }
         public bool IsCombatArea => !IsTown && !IsHideout;
-
         public DateTime TimeEntered = DateTime.Now;
-
 		public AreaTemplate Area { get; }
+        public readonly EntitiesAreaCache EntitiesCache;
+        private DateTime _creationTime;
+        public static AreaInstance Current;
 
         public AreaInstance(AreaTemplate area, uint hash, int realLevel)
         {
@@ -30,6 +32,9 @@ namespace PoeHUD.Models
             HasWaypoint = area.HasWaypoint;
             IsMap = area.IsMap;
             IsHideout = area.RawName.ToLower().Contains("hideout");
+            _creationTime = DateTime.Now;
+            Current = this;  
+            EntitiesAreaCache.Current = EntitiesCache = new EntitiesAreaCache();
         }
 
         public override string ToString()
@@ -47,6 +52,18 @@ namespace PoeHUD.Models
             int hours = mins / 60;
             mins = mins % 60;
             return String.Format(hours > 0 ? "{0}:{1:00}:{2:00}" : "{1}:{2:00}", hours, mins, secs);
+        }
+
+        /// <summary>
+        /// For deleting old maps data from cache.
+        /// </summary>
+        internal TimeSpan TimeExistInCache => DateTime.Now - _creationTime;
+
+        internal void UsedFromCache()
+        {
+            Current = this;
+            EntitiesAreaCache.Current = EntitiesCache;
+            _creationTime = DateTime.Now;
         }
     }
 }

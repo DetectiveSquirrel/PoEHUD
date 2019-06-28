@@ -3,6 +3,7 @@ using PoeHUD.Models.Interfaces;
 using System.Collections.Generic;
 using System.Linq;
 using PoeHUD.Controllers;
+using PoeHUD.EntitiesCache.CachedEntities;
 using PoeHUD.Models.Enums;
 using PoeHUD.Poe.Components;
 using SharpDX;
@@ -85,7 +86,7 @@ namespace PoeHUD.Poe
         public bool IsActive => IsHostile && IsAlive && IsTargetable && !IsHidden;
         public bool HasBuff(string buff) => GetComponent<Life>().Buffs.Any(x => x.Name == buff);
         public bool HasBuff(List<string> buffs) => !GetComponent<Life>().Buffs.TrueForAll(x => !buffs.Contains(x.Name));
-        public float Distance => Vector2.Distance(GameController.Instance.Player.PositionedComp.GridPos, PositionedComp.GridPos);
+        public float Distance => Vector2.Distance(PlayerInfo.GridPos, PositionedComp.GridPos);
 
         public Vector3 Pos
         {

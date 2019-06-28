@@ -20,11 +20,15 @@ namespace PoeHUD.Poe.RemoteMemoryObjects
 
         private static Vector2 oldplayerCord;
 
+        public Vector2 WorldToScreen(Vector3 vec3, EntityWrapper entityWrapper)
+        {
+            return WorldToScreen(vec3, entityWrapper.Address);
+        }
 
-        public unsafe Vector2 WorldToScreen(Vector3 vec3, EntityWrapper entityWrapper)
+        internal Vector2 WorldToScreen(Vector3 vec3, long address)
         {
             Entity localPlayer = Game.IngameState.Data.LocalPlayer;
-            var isplayer = localPlayer.Address == entityWrapper.Address && localPlayer.IsValid;
+            var isplayer = localPlayer.Address == address && localPlayer.IsValid;
             bool isMoving = false;
             isMoving = GameController.Instance.Cache.Enable ? GameController.Instance.Cache.Player.Actor.isMoving : localPlayer.GetComponent<Actor>().isMoving;
             var playerMoving = isplayer && isMoving;
